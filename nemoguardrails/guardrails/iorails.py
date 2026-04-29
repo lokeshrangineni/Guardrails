@@ -93,6 +93,7 @@ class IORails:
             tracer=self._tracer,
         )
         self._speculative_generation = config.rails.input.speculative_generation or False
+        self._warned_speculative_streaming = False
 
         # Semaphore for streaming concurrency control / load shedding
         self._stream_semaphore = asyncio.Semaphore(STREAM_MAX_CONCURRENCY)
@@ -253,8 +254,12 @@ class IORails:
             if not input_result.is_safe:
                 log.info("[%s] Input blocked (speculative): %s", req_id, input_result.reason)
                 gen_task.cancel()
-                with suppress(asyncio.CancelledError):
-                    await gen_task
+                # Use gather(return_exceptions=True) instead of bare await: when both
+                # tasks finish simultaneously, gen_task may hold a stored exception that
+                # would leak through suppress(CancelledError). gather drains it safely.
+                gen_result = (await asyncio.gather(gen_task, return_exceptions=True))[0]
+                if isinstance(gen_result, Exception) and not isinstance(gen_result, asyncio.CancelledError):
+                    log.warning("[%s] LLM generation error suppressed: %s", req_id, gen_result)
                 if self._metrics_enabled:
                     record_request_blocked(RailDirection.INPUT)
                 self._set_speculative_span_attrs(request_span, first_completed, "input_rails", 0.0)
@@ -335,7 +340,8 @@ class IORails:
             asyncio.QueueFull: If the streaming concurrency limit is
                 reached (load shedding).
         """
-        if self._speculative_generation:
+        if self._speculative_generation and not self._warned_speculative_streaming:
+            self._warned_speculative_streaming = True
             log.warning("speculative_generation is not supported for streaming; falling back to sequential")
         self._validate_streaming_with_output_rails()
 
