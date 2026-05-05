@@ -1158,7 +1158,7 @@ class TestGenerateAsyncRequestMetrics:
         """
         gate = asyncio.Event()
 
-        async def blocking_generate(messages, req_id, **kwargs):
+        async def blocking_generate(messages, req_id, request_span=None, **kwargs):
             """Stub pipeline that blocks until ``gate`` is set, so the test can
             observe queue/worker state mid-flight."""
             await gate.wait()
@@ -1536,7 +1536,7 @@ class TestNonstreamStateGauges:
         """
         gate = asyncio.Event()
 
-        async def blocking_generate(messages, req_id, **kwargs):
+        async def blocking_generate(messages, req_id, request_span=None, **kwargs):
             """Stub pipeline that blocks until ``gate`` is set, so the test can
             observe queue/worker state mid-flight."""
             await gate.wait()
@@ -1570,7 +1570,7 @@ class TestNonstreamStateGauges:
         """
         gate = asyncio.Event()
 
-        async def blocking_generate(messages, req_id, **kwargs):
+        async def blocking_generate(messages, req_id, request_span=None, **kwargs):
             """Stub pipeline that blocks until ``gate`` is set, so the test can
             observe queue/worker state mid-flight."""
             await gate.wait()
@@ -1691,7 +1691,7 @@ class TestRequestsActiveAggregate:
         """
         gate = asyncio.Event()
 
-        async def blocking_generate(messages, req_id, **kwargs):
+        async def blocking_generate(messages, req_id, request_span=None, **kwargs):
             """Stub pipeline that blocks until ``gate`` is set, so the test can
             observe queue/worker state mid-flight."""
             await gate.wait()
@@ -1757,7 +1757,7 @@ class TestRequestsActiveAggregate:
         """
         nonstream_gate = asyncio.Event()
 
-        async def blocking_generate(messages, req_id, **kwargs):
+        async def blocking_generate(messages, req_id, request_span=None, **kwargs):
             """Stub pipeline that blocks until ``nonstream_gate`` is set, so the
             test can observe queue/worker state mid-flight."""
             await nonstream_gate.wait()
